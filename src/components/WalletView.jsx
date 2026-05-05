@@ -27,6 +27,7 @@ export default function WalletView() {
   const isArabic = language === 'ar';
 
   const [showModal, setShowModal] = useState(false);
+  const [confirmPhone, setConfirmPhone] = useState("");
   const [method, setMethod] = useState("InstaPay");
   const [phone, setPhone] = useState("");
   const [dropdown, setDropdown] = useState(false);
@@ -59,16 +60,29 @@ export default function WalletView() {
   const handlePayout = async (e) => {
     e.preventDefault();
     if (!payoutAmount || parseFloat(payoutAmount) <= 0) return;
+    if (phone !== confirmPhone) {
+      alert(isArabic ? 'أرقام الحساب غير متطابقة' : 'Account numbers do not match');
+      return;
+    }
     
     try {
       setPayoutLoading(true);
       const idempotencyKey = `payout_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-      const mfaToken = "valid-otp-1234"; // Mocked for demo
+      const mfaToken = "development-mfa-token"; 
       
-      await walletService.requestPayout(parseFloat(payoutAmount), idempotencyKey, mfaToken);
-      alert(isArabic ? 'تم تقديم طلب السحب بنجاح' : 'Payout request submitted successfully');
+      const payoutData = {
+        amount: parseFloat(payoutAmount),
+        payoutMethod: method.toUpperCase().replace(' ', '_'), // e.g. INSTAPAY, VODAFONE_CASH
+        accountNumber: phone,
+        confirmAccountNumber: confirmPhone
+      };
+
+      await walletService.requestPayout(payoutData, idempotencyKey, mfaToken);
+      alert(isArabic ? 'تم تقديم طلب السحب بنجاح وهو قيد المراجعة الآن' : 'Payout request submitted successfully and is now under review');
       setShowModal(false);
       setPayoutAmount("");
+      setPhone("");
+      setConfirmPhone("");
       fetchWalletData();
     } catch (error) {
       alert(error.response?.data?.message || 'Payout failed');
@@ -95,6 +109,7 @@ export default function WalletView() {
     noTransactions: isArabic ? 'لا توجد معاملات حتى الآن' : 'No transactions yet',
     payoutInfo: isArabic ? 'بيانات السحب' : 'Payout Info',
     accountNumber: isArabic ? 'رقم الهاتف / الحساب' : 'Phone / Account number',
+    confirmAccountNumber: isArabic ? 'تأكيد رقم الهاتف / الحساب' : 'Confirm Phone / Account number',
     amount: isArabic ? 'المبلغ' : 'Amount',
     cancel: isArabic ? 'إلغاء' : 'Cancel',
     confirm: isArabic ? 'تأكيد السحب' : 'Confirm Payout',
@@ -133,18 +148,18 @@ export default function WalletView() {
              
              <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 gap-8 lg:gap-12">
                 <div>
-                  <p className="text-slate-400 font-bold text-xs uppercase tracking-[0.2em] mb-2">{t.availableBalance}</p>
-                  <div className="flex items-baseline gap-2">
-                    <span className="text-4xl sm:text-5xl font-black text-white">{summary?.availableBalance.toFixed(2) || "0.00"}</span>
-                    <span className="text-orange-400 font-bold">{t.currency}</span>
-                  </div>
+                   <p className="text-slate-400 font-bold text-xs uppercase tracking-[0.2em] mb-2">{t.availableBalance}</p>
+                   <div className="flex items-baseline gap-2">
+                     <span className="text-4xl sm:text-5xl font-black text-white">{summary?.availableBalance.toFixed(2) || "0.00"}</span>
+                     <span className="text-orange-400 font-bold">{t.currency}</span>
+                   </div>
                 </div>
                 <div>
-                  <p className="text-slate-400 font-bold text-xs uppercase tracking-[0.2em] mb-2">{t.pendingBalance}</p>
-                  <div className="flex items-baseline gap-2">
-                    <span className="text-2xl sm:text-3xl font-black text-slate-300">{summary?.pendingBalance.toFixed(2) || "0.00"}</span>
-                    <span className="text-slate-500 font-bold">{t.currency}</span>
-                  </div>
+                   <p className="text-slate-400 font-bold text-xs uppercase tracking-[0.2em] mb-2">{t.pendingBalance}</p>
+                   <div className="flex items-baseline gap-2">
+                     <span className="text-2xl sm:text-3xl font-black text-slate-300">{summary?.pendingBalance.toFixed(2) || "0.00"}</span>
+                     <span className="text-slate-500 font-bold">{t.currency}</span>
+                   </div>
                 </div>
              </div>
           </div>
@@ -214,19 +229,19 @@ export default function WalletView() {
                               {entry.type === 'EARNING' ? <ArrowDownLeft className="w-5 h-5" /> : <ArrowUpRight className="w-5 h-5" />}
                            </div>
                            <div>
-                             <p className="font-bold text-slate-800">{t.types[entry.type] || entry.type}</p>
+                             <p className="font-bold text-slate-800">{entry.description || t.types[entry.type] || entry.type}</p>
                              <p className="text-[10px] text-gray-400 font-medium font-mono">#{entry.id.split('-')[0]}</p>
                            </div>
                         </div>
                       </td>
                       <td className="px-6 py-5">
                          <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider flex items-center gap-1.5 w-fit ${
-                           entry.status === 'completed' ? 'bg-green-100 text-green-700' : 
-                           entry.status === 'pending' ? 'bg-amber-100 text-amber-700' : 
+                           entry.status.startsWith('completed') ? 'bg-green-100 text-green-700' : 
+                           entry.status.startsWith('pending') ? 'bg-amber-100 text-amber-700' : 
                            'bg-red-100 text-red-700'
                          }`}>
-                           {entry.status === 'pending' ? <Clock className="w-3 h-3" /> : <CheckCircle2 className="w-3 h-3" />}
-                           {t.status[entry.status] || entry.status}
+                           {entry.status.startsWith('pending') ? <Clock className="w-3 h-3" /> : <CheckCircle2 className="w-3 h-3" />}
+                           {entry.status.split(':')[0] === 'pending' ? t.status.pending : (t.status[entry.status] || entry.status)}
                          </span>
                       </td>
                       <td className="px-6 py-5">
@@ -314,7 +329,7 @@ export default function WalletView() {
               </button>
             </div>
 
-            <form onSubmit={handlePayout} className="p-8 space-y-6">
+            <form onSubmit={handlePayout} className="p-8 space-y-6 max-h-[70vh] overflow-y-auto">
               
               <div>
                  <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3">{t.selectMethod}</label>
@@ -366,6 +381,18 @@ export default function WalletView() {
               </div>
 
               <div>
+                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3">{t.confirmAccountNumber}</label>
+                <input
+                  type="text"
+                  required
+                  placeholder={isArabic ? 'أعد إدخال الرقم للتأكيد' : 'Re-enter number to confirm'}
+                  value={confirmPhone}
+                  onChange={(e) => setConfirmPhone(e.target.value)}
+                  className="w-full px-5 py-4 bg-gray-50 border-2 border-gray-50 rounded-2xl focus:border-orange-500 outline-none transition-all text-slate-800 font-bold placeholder:text-gray-300"
+                />
+              </div>
+
+              <div>
                 <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3">{t.amount}</label>
                 <div className="relative">
                   <input
@@ -397,8 +424,8 @@ export default function WalletView() {
                 </button>
                 <button 
                   type="submit"
-                  disabled={!payoutAmount || !phone || payoutLoading}
-                  className={`flex-[2] py-4 rounded-2xl font-black flex items-center justify-center transition-all shadow-xl ${(!payoutAmount || !phone || payoutLoading) ? 'bg-gray-100 text-gray-300 cursor-not-allowed shadow-none' : 'bg-orange-500 text-white shadow-orange-200 hover:bg-orange-600'}`}
+                  disabled={!payoutAmount || !phone || !confirmPhone || payoutLoading}
+                  className={`flex-[2] py-4 rounded-2xl font-black flex items-center justify-center transition-all shadow-xl ${(!payoutAmount || !phone || !confirmPhone || payoutLoading) ? 'bg-gray-100 text-gray-300 cursor-not-allowed shadow-none' : 'bg-orange-500 text-white shadow-orange-200 hover:bg-orange-600'}`}
                 >
                   {payoutLoading ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div> : t.confirm}
                 </button>
@@ -408,7 +435,6 @@ export default function WalletView() {
           </div>
         </div>
       )}
-
     </div>
   );
 }

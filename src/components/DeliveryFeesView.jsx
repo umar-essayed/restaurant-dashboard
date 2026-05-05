@@ -20,6 +20,8 @@ export default function DeliveryFeesView() {
   const [deliveryTimeMin, setDeliveryTimeMin] = useState(30);
   const [deliveryTimeMax, setDeliveryTimeMax] = useState(60);
   const [minimumOrder, setMinimumOrder] = useState(0);
+  const [serviceFeeType, setServiceFeeType] = useState("fixed"); // fixed | percentage
+  const [serviceFeeValue, setServiceFeeValue] = useState(0);
 
   useEffect(() => {
     if (selectedRestaurant) {
@@ -37,6 +39,9 @@ export default function DeliveryFeesView() {
         setPerKmRate(formula.per_km_rate || 0);
         if (formula.tiers) setTiers(formula.tiers);
       }
+      
+      setServiceFeeType(selectedRestaurant.serviceFeeType || 'fixed');
+      setServiceFeeValue(selectedRestaurant.serviceFeeValue || 0);
     }
   }, [selectedRestaurant]);
 
@@ -76,7 +81,9 @@ export default function DeliveryFeesView() {
             to: Number(t.to), 
             price: Number(t.price) 
           }))
-        } : null
+        } : null,
+        serviceFeeType: serviceFeeType,
+        serviceFeeValue: Number(serviceFeeValue)
       };
 
       await restaurantService.updateDeliverySettings(selectedRestaurant.id, data);
@@ -115,6 +122,10 @@ export default function DeliveryFeesView() {
     min: isArabic ? 'دقيقة' : 'min',
     minLabel: isArabic ? 'الأقل' : 'Min',
     maxLabel: isArabic ? 'الأقصى' : 'Max',
+    serviceFeeTitle: isArabic ? 'رسوم التطبيق (العمولة)' : 'App Service Fee (Commission)',
+    serviceFeeDesc: isArabic ? 'هذه هي الرسوم التي يتقاضاها النظام من كل أوردر.' : 'This is the fee the system takes from each order.',
+    fixedAmount: isArabic ? 'مبلغ ثابت' : 'Fixed Amount',
+    percentage: isArabic ? 'نسبة مئوية' : 'Percentage',
   };
 
   return (
@@ -289,6 +300,59 @@ export default function DeliveryFeesView() {
                 )}
               </div>
             )}
+          </div>
+
+          {/* App Service Fee Settings */}
+          <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
+            <div className="flex items-center gap-3 mb-4">
+               <div className="p-2 rounded-lg bg-indigo-50 text-indigo-600">
+                  <DollarSign className="w-5 h-5" />
+               </div>
+               <div>
+                  <h2 className="text-lg font-bold text-slate-800">{t.serviceFeeTitle}</h2>
+                  <p className="text-xs text-gray-400 font-medium">{t.serviceFeeDesc}</p>
+               </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+               <div className="space-y-3">
+                  <label className="text-xs font-black text-gray-400 uppercase tracking-widest block">{isArabic ? 'نوع الرسوم' : 'Fee Type'}</label>
+                  <div className="flex bg-gray-100 p-1 rounded-xl">
+                     <button
+                        onClick={() => setServiceFeeType('fixed')}
+                        className={`flex-1 py-2.5 rounded-lg text-sm font-bold transition-all ${
+                           serviceFeeType === 'fixed' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500'
+                        }`}
+                     >
+                        {t.fixedAmount}
+                     </button>
+                     <button
+                        onClick={() => setServiceFeeType('percentage')}
+                        className={`flex-1 py-2.5 rounded-lg text-sm font-bold transition-all ${
+                           serviceFeeType === 'percentage' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500'
+                        }`}
+                     >
+                        {t.percentage}
+                     </button>
+                  </div>
+               </div>
+
+               <div className="space-y-3">
+                  <label className="text-xs font-black text-gray-400 uppercase tracking-widest block">{isArabic ? 'القيمة' : 'Value'}</label>
+                  <div className="relative">
+                     <input
+                        type="number"
+                        value={serviceFeeValue}
+                        onChange={(e) => setServiceFeeValue(e.target.value)}
+                        placeholder="0.00"
+                        className={`w-full py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none font-black ${isArabic ? 'pl-10' : 'pr-10'}`}
+                     />
+                     <div className={`absolute inset-y-0 ${isArabic ? 'left-0 pl-4' : 'right-0 pr-4'} flex items-center pointer-events-none`}>
+                        <span className="text-gray-500 font-black">{serviceFeeType === 'fixed' ? t.currency : '%'}</span>
+                     </div>
+                  </div>
+               </div>
+            </div>
           </div>
         </div>
 

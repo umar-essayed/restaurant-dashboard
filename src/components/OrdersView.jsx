@@ -1,17 +1,21 @@
 import { useState, useEffect } from 'react';
-import { Clock, MapPin, Receipt, Banknote, ChevronRight, X, ChevronLeft, Package, User, Wallet, Info } from 'lucide-react';
+import { Clock, MapPin, Receipt, Banknote, ChevronRight, X, ChevronLeft, Package, User, Wallet, Info, Printer, Bike, CheckCircle, XCircle } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { translate } from '../locales/translations';
 import { useRestaurant } from '../contexts/RestaurantContext';
 import orderService from '../services/order.service';
+import { useSocket } from '../contexts/SocketContext';
+import PrintableInvoice from './PrintableInvoice';
 
 export default function OrdersView() {
   const [activeTab, setActiveTab] = useState('all');
   const { language } = useLanguage();
   const { selectedRestaurant } = useRestaurant();
+  const { socket } = useSocket();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState(null);
+  const [orderToPrint, setOrderToPrint] = useState(null);
   const isArabic = language === 'ar';
 
   const fetchOrders = async () => {
@@ -32,15 +36,44 @@ export default function OrdersView() {
     fetchOrders();
   }, [selectedRestaurant, activeTab]);
 
+  useEffect(() => {
+    if (socket) {
+      socket.on('order:new', () => {
+        fetchOrders();
+      });
+      socket.on('order:status_changed', () => {
+        fetchOrders();
+      });
+      return () => {
+        socket.off('order:new');
+        socket.off('order:status_changed');
+      };
+    }
+  }, [socket, selectedRestaurant]);
+
+  const handlePrint = (order) => {
+    setOrderToPrint(order);
+    setTimeout(() => {
+      window.print();
+      setOrderToPrint(null);
+    }, 100);
+  };
+
   const handleUpdateStatus = async (orderId, newStatus) => {
+    // Optimistic Update: Update local state immediately
+    setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: newStatus } : o));
+    if (selectedOrder?.id === orderId) {
+      setSelectedOrder(prev => ({ ...prev, status: newStatus }));
+    }
+
     try {
       await orderService.updateStatus(orderId, newStatus);
-      if (selectedOrder?.id === orderId) {
-        setSelectedOrder(prev => ({ ...prev, status: newStatus }));
-      }
+      // Refresh background data to ensure sync
       fetchOrders();
     } catch (err) {
       console.error('Failed to update status:', err);
+      // Revert if failed
+      fetchOrders();
     }
   };
 
@@ -105,12 +138,24 @@ export default function OrdersView() {
               >
                 <div>
                   {/* Status & ID */}
-                  <div className={`flex justify-between items-start mb-4 ${isArabic ? 'flex-row-reverse' : ''}`}>
-                     <span className={`px-2.5 py-1 text-[10px] font-black rounded-full border uppercase tracking-wider ${getStatusColor(order.status)}`}>
-                        {order.status}
-                     </span>
-                     <p className="text-[10px] font-bold text-gray-400 font-mono">#{order.id.split('-')[0]}</p>
-                  </div>
+                   <div className={`flex justify-between items-start mb-4 ${isArabic ? 'flex-row-reverse' : ''}`}>
+                      <div className="flex flex-col gap-1">
+                        <span className={`px-2.5 py-1 text-[10px] font-black rounded-full border uppercase tracking-wider ${getStatusColor(order.status)}`}>
+                           {order.status}
+                        </span>
+                        <p className="text-[10px] font-bold text-gray-400 font-mono">#{order.id.split('-')[0]}</p>
+                      </div>
+                      <button 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handlePrint(order);
+                        }}
+                        className="p-2 bg-gray-50 hover:bg-orange-50 text-gray-400 hover:text-orange-500 rounded-xl transition-all active:scale-90"
+                        title={isArabic ? 'طباعة سريعة' : 'Quick Print'}
+                      >
+                        <Printer className="w-5 h-5" />
+                      </button>
+                   </div>
 
                   {/* Customer Info */}
                   <div className={`flex items-center gap-3 mb-4 ${isArabic ? 'flex-row-reverse text-right' : 'text-left'}`}>
@@ -183,6 +228,17 @@ export default function OrdersView() {
               </button>
             </div>
 
+            {/* Actions Bar */}
+            <div className={`px-6 sm:px-8 py-3 bg-white border-b border-gray-100 flex justify-end items-center gap-3 ${isArabic ? 'flex-row-reverse' : ''}`}>
+               <button 
+                 onClick={() => handlePrint(selectedOrder)}
+                 className="flex items-center gap-2 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold text-xs transition-all active:scale-95"
+               >
+                 <Printer className="w-4 h-4" />
+                 {isArabic ? 'طباعة الفاتورة' : 'Print Invoice'}
+               </button>
+            </div>
+
             {/* Modal Body */}
             <div className="flex-1 overflow-y-auto p-6 sm:p-8 space-y-8 hide-scrollbar">
               
@@ -239,9 +295,11 @@ export default function OrdersView() {
                             {item.foodItem?.imageUrl && (
                               <img src={item.foodItem.imageUrl} className="w-12 h-12 rounded-xl object-cover" alt="" />
                             )}
-                            <div className="flex-1 min-w-0">
-                               <p className="font-bold text-slate-800 truncate">{isArabic ? (item.foodItem?.nameAr || item.foodItem?.name) : item.foodItem?.name}</p>
-                               <p className="text-xs text-gray-400">{item.quantity} x EGP {item.unitPrice}</p>
+                            <div className="flex-1 min-w-0" style={{ textAlign: 'start' }}>
+                               <p className="font-bold text-slate-800 truncate" dir="auto" style={{ unicodeBidi: 'plaintext' }}>{isArabic ? (item.foodItem?.nameAr || item.foodItem?.name) : item.foodItem?.name}</p>
+                               <p className="text-xs text-gray-400">
+                                  {item.quantity} x EGP {item.unitPrice}
+                               </p>
                             </div>
                             <p className="font-black text-slate-900">EGP {item.quantity * item.unitPrice}</p>
                          </div>
@@ -281,7 +339,7 @@ export default function OrdersView() {
                              </div>
                              <p className="text-xs font-bold text-slate-300">{translate(language, 'orders.yourShare')}</p>
                           </div>
-                          <p className="text-lg font-black text-white">EGP {selectedOrder.restaurantShare}</p>
+                          <p className="text-lg font-black text-white">EGP {selectedOrder.subtotal}</p>
                        </div>
                     </div>
                  </div>
@@ -297,17 +355,96 @@ export default function OrdersView() {
                     <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center shadow-sm text-orange-500">
                        <MapPin className="w-6 h-6" />
                     </div>
-                    <div className="flex-1">
-                       <p className="font-bold text-slate-800">{selectedOrder.deliveryAddress}</p>
+                    <div className="flex-1" style={{ textAlign: 'start' }}>
+                       <p className="font-bold text-slate-800" dir="auto" style={{ unicodeBidi: 'plaintext' }}>{selectedOrder.deliveryAddress}</p>
                        <p className="text-xs text-gray-400 font-medium">Cairo, Egypt • {new Date(selectedOrder.createdAt).toLocaleString()}</p>
                     </div>
                  </div>
               </div>
 
+              {/* Delivery Drivers (Available / Requested) */}
+              {selectedOrder.deliveryRequests && selectedOrder.deliveryRequests.length > 0 && (
+                <div className="space-y-4 pt-4 border-t border-gray-100">
+                  <h4 className={`text-xs font-black text-gray-400 uppercase tracking-[0.2em] flex items-center gap-2 ${isArabic ? 'flex-row-reverse' : ''}`}>
+                      <Bike className="w-4 h-4" />
+                      {isArabic ? 'السائقين المتاحين (طلبات التوصيل)' : 'Delivery Drivers (Requests)'}
+                  </h4>
+                  <div className="space-y-3">
+                      {selectedOrder.deliveryRequests.map((req) => (
+                        <div key={req.id} className={`bg-white border border-gray-100 p-4 rounded-2xl flex items-center gap-4 ${isArabic ? 'flex-row-reverse text-right' : ''}`}>
+                            <div className="relative">
+                              {req.driver?.user?.profileImage ? (
+                                  <img src={req.driver.user.profileImage} alt={req.driver.user.name} className="w-12 h-12 rounded-xl object-cover" />
+                              ) : (
+                                  <div className="w-12 h-12 bg-slate-100 rounded-xl flex items-center justify-center text-slate-400">
+                                    <User className="w-6 h-6" />
+                                  </div>
+                              )}
+                              {req.status === 'ACCEPTED' && (
+                                <div className="absolute -bottom-1 -right-1 bg-green-500 rounded-full p-0.5 border-2 border-white">
+                                  <CheckCircle className="w-3 h-3 text-white" />
+                                </div>
+                              )}
+                              {req.status === 'REJECTED' && (
+                                <div className="absolute -bottom-1 -right-1 bg-red-500 rounded-full p-0.5 border-2 border-white">
+                                  <XCircle className="w-3 h-3 text-white" />
+                                </div>
+                              )}
+                            </div>
+                            
+                            <div className="flex-1" style={{ textAlign: 'start' }}>
+                              <p className="font-bold text-slate-800 text-sm">{req.driver?.user?.name || 'Unknown Driver'}</p>
+                              <div className={`flex items-center gap-2 mt-1 ${isArabic ? 'flex-row-reverse' : ''}`}>
+                                  <span className="text-xs font-semibold text-orange-500 bg-orange-50 px-2 py-0.5 rounded-md">
+                                    {req.estimatedDistance != null ? `${req.estimatedDistance.toFixed(2)} km` : 'N/A'}
+                                  </span>
+                                  <span className="text-xs text-slate-400">{req.driver?.user?.phone || ''}</span>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center">
+                              {req.status === 'PENDING' && (
+                                <span className="flex items-center gap-1 text-xs font-bold text-amber-500 bg-amber-50 px-3 py-1.5 rounded-lg">
+                                  <Clock className="w-3 h-3" />
+                                  {isArabic ? 'في الانتظار' : 'Pending'}
+                                </span>
+                              )}
+                              {req.status === 'ACCEPTED' && (
+                                <span className="flex items-center gap-1 text-xs font-bold text-green-500 bg-green-50 px-3 py-1.5 rounded-lg">
+                                  <CheckCircle className="w-3 h-3" />
+                                  {isArabic ? 'تم القبول' : 'Accepted'}
+                                </span>
+                              )}
+                              {req.status === 'REJECTED' && (
+                                <span className="flex items-center gap-1 text-xs font-bold text-red-500 bg-red-50 px-3 py-1.5 rounded-lg">
+                                  <XCircle className="w-3 h-3" />
+                                  {isArabic ? 'تم الرفض' : 'Rejected'}
+                                </span>
+                              )}
+                              {req.status === 'EXPIRED' && (
+                                <span className="flex items-center gap-1 text-xs font-bold text-gray-500 bg-gray-50 px-3 py-1.5 rounded-lg">
+                                  <X className="w-3 h-3" />
+                                  {isArabic ? 'انتهت المهلة' : 'Expired'}
+                                </span>
+                              )}
+                            </div>
+                        </div>
+                      ))}
+                  </div>
+                </div>
+              )}
+
             </div>
           </div>
         </div>
       )}
+      
+      {/* Hidden Printable Invoice */}
+      <PrintableInvoice 
+        order={orderToPrint || selectedOrder} 
+        restaurant={selectedRestaurant} 
+        isArabic={isArabic} 
+      />
     </div>
   );
 }

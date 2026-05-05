@@ -133,20 +133,7 @@ export default function LoginView({ onLoginSuccess }) {
     }
   };
 
-  const handleDebugLogin = async () => {
-    setIsLoading(true);
-    try {
-      const userData = await authService.debugLogin('vendor@test.com', 'VENDOR');
-      showToast('Debug login successful!', 'success');
-      setTimeout(() => {
-        onLoginSuccess(userData.user);
-      }, 1000);
-    } catch (err) {
-      showToast('Debug login failed.', 'error');
-    } finally {
-      setIsLoading(false);
-    }
-  };
+
 
 
   // We add a wrapper to ensure the login CSS styles only affect this component as much as possible,
@@ -235,15 +222,7 @@ export default function LoginView({ onLoginSuccess }) {
               {isLoading ? <span className="spinner"></span> : <span>Log In</span>}
             </button>
 
-            <button 
-              type="button" 
-              onClick={handleDebugLogin}
-              className="btn-login"
-              disabled={isLoading}
-              style={{ marginTop: '12px', background: 'rgba(255, 255, 255, 0.1)', border: '1px solid rgba(255, 255, 255, 0.2)', color: '#fff' }}
-            >
-              <span>Debug Login (Dev Mode)</span>
-            </button>
+
           </form>
 
           <div className="divider">

@@ -13,6 +13,8 @@ import PromotionsView from './components/PromotionsView';
 import ReviewsView from './components/ReviewsView';
 import LoginView from './components/LoginView';
 import { RestaurantProvider } from './contexts/RestaurantContext';
+import { SocketProvider } from './contexts/SocketContext';
+import NewOrderAlert from './components/NewOrderAlert';
 import authService from './services/auth.service';
 
 export default function App() {
@@ -54,27 +56,30 @@ export default function App() {
 
   return (
     <RestaurantProvider>
-      <Layout currentView={currentView} onNavigate={handleNavigate} user={user}>
-        {currentView === 'Dashboard' && <DashboardOverview />}
-        {currentView === 'Orders' && <OrdersView />}
-        {currentView === 'Menu' && <MenuView />}
-        {currentView === 'Analytics' && <AnalyticsView />}
-        {currentView === 'Profile' && <ProfileView />}
-        {currentView === 'settings' && <SettingsView onNavigate={handleNavigate} />}
-        {currentView === 'support' && <SupportView />}
-        {currentView === 'delivery-fees' && <DeliveryFeesView />}
-        {currentView === 'wallet' && <WalletView />}
-        {currentView === 'promotions' && <PromotionsView />}
-        {currentView === 'reviews' && <ReviewsView />}
-        
-        {!['Dashboard', 'Orders', 'Menu', 'Analytics', 'Profile', 'settings', 'support', 'delivery-fees', 'wallet', 'promotions', 'reviews'].includes(currentView) && (
-          <div className="flex items-center justify-center h-full min-h-[50vh]">
-            <p className="text-xl text-gray-500 font-medium">
-              <span className="text-orange-500 font-bold">{currentView}</span> view is coming soon!
-            </p>
-          </div>
-        )}
-      </Layout>
+      <SocketProvider>
+        <Layout currentView={currentView} onNavigate={handleNavigate} user={user}>
+          <NewOrderAlert />
+          {currentView === 'Dashboard' && <DashboardOverview />}
+          {currentView === 'Orders' && <OrdersView />}
+          {currentView === 'Menu' && <MenuView />}
+          {currentView === 'Analytics' && <AnalyticsView />}
+          {currentView === 'Profile' && <ProfileView />}
+          {currentView === 'settings' && <SettingsView onNavigate={handleNavigate} />}
+          {currentView === 'support' && <SupportView />}
+          {currentView === 'delivery-fees' && <DeliveryFeesView />}
+          {currentView === 'wallet' && <WalletView />}
+          {currentView === 'promotions' && <PromotionsView />}
+          {currentView === 'reviews' && <ReviewsView />}
+          
+          {!['Dashboard', 'Orders', 'Menu', 'Analytics', 'Profile', 'settings', 'support', 'delivery-fees', 'wallet', 'promotions', 'reviews'].includes(currentView) && (
+            <div className="flex items-center justify-center h-full min-h-[50vh]">
+              <p className="text-xl text-gray-500 font-medium">
+                <span className="text-orange-500 font-bold">{currentView}</span> view is coming soon!
+              </p>
+            </div>
+          )}
+        </Layout>
+      </SocketProvider>
     </RestaurantProvider>
   );
 }

@@ -13,12 +13,12 @@ const walletService = {
     return response.data;
   },
 
-  requestPayout: async (amount, idempotencyKey, mfaToken) => {
-    const response = await api.post('/wallet/payout', { amount }, {
+  requestPayout: async (payoutData, idempotencyKey, mfaToken) => {
+    const response = await api.post('/wallet/payout', payoutData, {
       headers: {
         'idempotency-key': idempotencyKey,
         'mfa-token': mfaToken,
-        'app-integrity': 'valid-device-token' // Mocked for now
+        'app-integrity': 'development-token' // In production this would be from Play Integrity
       }
     });
     return response.data;

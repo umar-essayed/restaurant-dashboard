@@ -26,14 +26,7 @@ const authService = {
     localStorage.removeItem('user');
   },
 
-  debugLogin: async (email, role) => {
-    const response = await api.post('/auth/debug-login', { email, role });
-    if (response.data.accessToken) {
-      localStorage.setItem('token', response.data.accessToken);
-      localStorage.setItem('isAuthenticated', 'true');
-    }
-    return response.data;
-  },
+
 };
 
 export default authService;

@@ -78,7 +78,6 @@ export default function AddItemModal({ isOpen, onClose, onAddItem, onEditItem, i
       const itemPayload = {
         name: nameEn.trim(),
         nameAr: nameAr.trim(),
-        price: Number(price),
         originalPrice: salePrice ? Number(price) : null,
         price: salePrice ? Number(salePrice) : Number(price),
         isOnSale: !!salePrice,
