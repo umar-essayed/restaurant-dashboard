@@ -2,19 +2,24 @@ import { useState, useEffect } from 'react';
 import { Bike, Phone, Star, MapPin, Search, RefreshCw, ChevronRight, User } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { translate } from '../locales/translations';
-import driverService from '../services/driver.service';
+import { useRestaurant } from '../contexts/RestaurantContext';
 
 export default function DriversView() {
   const { language } = useLanguage();
+  const { selectedRestaurant } = useRestaurant();
   const [drivers, setDrivers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const isArabic = language === 'ar';
 
   const fetchDrivers = async () => {
+    if (!selectedRestaurant) return;
     setLoading(true);
     try {
-      const data = await driverService.getAvailableDrivers();
+      const data = await driverService.getAvailableDrivers(
+        selectedRestaurant.latitude,
+        selectedRestaurant.longitude
+      );
       setDrivers(data || []);
     } catch (err) {
       console.error('Failed to fetch drivers:', err);
@@ -28,7 +33,14 @@ export default function DriversView() {
     // Auto refresh every 30 seconds
     const interval = setInterval(fetchDrivers, 30000);
     return () => clearInterval(interval);
-  }, []);
+  }, [selectedRestaurant]);
+
+  const formatDistance = (km) => {
+    if (km === null || km === undefined) return '';
+    const meters = km * 1000;
+    if (meters < 1000) return `${Math.round(meters)} m`;
+    return `${km.toFixed(1)} km`;
+  };
 
   const filteredDrivers = drivers.filter(d => 
     d.user?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -83,6 +95,13 @@ export default function DriversView() {
               key={driver.id}
               className="group bg-white rounded-[2.5rem] p-6 border-2 border-transparent hover:border-orange-500/20 shadow-sm hover:shadow-2xl hover:-translate-y-2 transition-all duration-500 flex flex-col relative overflow-hidden"
             >
+              {/* Distance Tag */}
+              {driver.distance !== null && (
+                <div className="absolute top-4 right-4 bg-orange-500 text-white px-3 py-1 rounded-full text-[10px] font-black shadow-lg shadow-orange-200">
+                  {formatDistance(driver.distance)}
+                </div>
+              )}
+
               {/* Decorative Background Element */}
               <div className="absolute -right-8 -top-8 w-32 h-32 bg-orange-500/5 rounded-full group-hover:scale-150 transition-transform duration-700"></div>
               
@@ -95,11 +114,11 @@ export default function DriversView() {
                         <User className="w-8 h-8" />
                       </div>
                     )}
-                    <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-green-500 rounded-full border-4 border-white"></div>
+                    <div className={`absolute -bottom-1 -right-1 w-5 h-5 rounded-full border-4 border-white ${driver.isBusy ? 'bg-amber-500' : 'bg-green-500'}`}></div>
                  </div>
                  
                  <div className={`flex-1 ${isArabic ? 'text-right' : 'text-left'}`}>
-                    <h3 className="text-lg font-black text-slate-900 leading-tight group-hover:text-orange-600 transition-colors">{driver.user?.name}</h3>
+                    <h3 className="text-lg font-black text-slate-900 leading-tight group-hover:text-orange-600 transition-colors truncate">{driver.user?.name || (isArabic ? 'سائق غير معروف' : 'Unknown Driver')}</h3>
                     <div className={`flex items-center gap-2 mt-1 ${isArabic ? 'flex-row-reverse' : ''}`}>
                        <div className="flex items-center text-amber-500">
                           <Star className="w-3 h-3 fill-current" />
@@ -111,28 +130,26 @@ export default function DriversView() {
                  </div>
               </div>
 
-              {/* Stats & Info */}
               <div className="space-y-3 mb-6 relative z-10">
-                 <div className={`flex items-center gap-3 p-3 bg-slate-50 rounded-2xl group-hover:bg-orange-50 transition-colors ${isArabic ? 'flex-row-reverse text-right' : ''}`}>
-                    <div className="w-8 h-8 rounded-xl bg-white flex items-center justify-center text-slate-400 group-hover:text-orange-500 shadow-sm">
-                       <Bike className="w-4 h-4" />
+                 <div className={`flex items-center justify-between p-3 bg-slate-50 rounded-2xl group-hover:bg-orange-50 transition-colors ${isArabic ? 'flex-row-reverse text-right' : ''}`}>
+                    <div className="flex items-center gap-3">
+                       <div className="w-8 h-8 rounded-xl bg-white flex items-center justify-center text-slate-400 group-hover:text-orange-500 shadow-sm">
+                          <Bike className="w-4 h-4" />
+                       </div>
+                       <div>
+                          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">{isArabic ? 'المركبة' : 'Vehicle'}</p>
+                          <p className="text-xs font-black text-slate-700 capitalize">{driver.vehicle?.type || (isArabic ? 'دراجة' : 'Motorcycle')}</p>
+                       </div>
                     </div>
-                    <div>
-                       <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">{isArabic ? 'نوع المركبة' : 'Vehicle'}</p>
-                       <p className="text-xs font-black text-slate-700 capitalize">{driver.vehicle?.type || (isArabic ? 'غير محدد' : 'Standard')}</p>
-                    </div>
-                 </div>
-
-                 <div className={`flex items-center gap-3 p-3 bg-slate-50 rounded-2xl group-hover:bg-orange-50 transition-colors ${isArabic ? 'flex-row-reverse text-right' : ''}`}>
-                    <div className="w-8 h-8 rounded-xl bg-white flex items-center justify-center text-slate-400 group-hover:text-orange-500 shadow-sm">
-                       <MapPin className="w-4 h-4" />
-                    </div>
-                    <div>
-                       <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">{isArabic ? 'الموقع الحالي' : 'Current Location'}</p>
-                       <p className="text-xs font-black text-slate-700 truncate max-w-[150px]">
-                         {driver.currentLat?.toFixed(4)}, {driver.currentLng?.toFixed(4)}
-                       </p>
-                    </div>
+                    {driver.isBusy ? (
+                       <span className="px-2 py-0.5 bg-amber-100 text-amber-600 text-[9px] font-black rounded-md uppercase tracking-wider">
+                          {isArabic ? 'مشغول' : 'Busy'}
+                       </span>
+                    ) : (
+                       <span className="px-2 py-0.5 bg-green-100 text-green-600 text-[9px] font-black rounded-md uppercase tracking-wider">
+                          {isArabic ? 'متاح' : 'Available'}
+                       </span>
+                    )}
                  </div>
               </div>
 

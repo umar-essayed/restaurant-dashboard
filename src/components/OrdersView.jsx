@@ -397,14 +397,44 @@ export default function OrdersView() {
               </div>
 
               {/* Delivery Drivers (Available / Requested) */}
-              {selectedOrder.deliveryRequests && selectedOrder.deliveryRequests.length > 0 && (
-                <div className="space-y-4 pt-4 border-t border-gray-100">
+              <div className="space-y-4 pt-4 border-t border-gray-100">
+                <div className={`flex items-center justify-between ${isArabic ? 'flex-row-reverse' : ''}`}>
                   <h4 className={`text-xs font-black text-gray-400 uppercase tracking-[0.2em] flex items-center gap-2 ${isArabic ? 'flex-row-reverse' : ''}`}>
                       <Bike className="w-4 h-4" />
-                      {isArabic ? 'السائقين المتاحين (طلبات التوصيل)' : 'Delivery Drivers (Requests)'}
+                      {isArabic ? 'حالة التوزيع (Dispatch Flow)' : 'Dispatch Flow Status'}
                   </h4>
-                  <div className="space-y-3">
-                      {selectedOrder.deliveryRequests.map((req) => (
+                  {!selectedOrder.driver && (
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 bg-orange-500 rounded-full animate-pulse"></div>
+                      <span className="text-[10px] font-black text-orange-500 uppercase">{isArabic ? 'جاري البحث...' : 'Searching...'}</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Dispatch Progress Steps */}
+                <div className={`flex items-center justify-between px-2 mb-6 ${isArabic ? 'flex-row-reverse' : ''}`}>
+                  {[
+                    { id: 'search', label: isArabic ? 'البحث' : 'Search', done: true },
+                    { id: 'offer', label: isArabic ? 'العرض' : 'Offering', done: selectedOrder.deliveryRequests?.length > 0 },
+                    { id: 'assign', label: isArabic ? 'القبول' : 'Assigned', done: !!selectedOrder.driver }
+                  ].map((step, idx, arr) => (
+                    <div key={step.id} className="flex items-center flex-1 last:flex-none">
+                      <div className="flex flex-col items-center gap-2">
+                        <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold ${step.done ? 'bg-orange-500 text-white' : 'bg-gray-100 text-gray-400'}`}>
+                          {step.done ? '✓' : idx + 1}
+                        </div>
+                        <span className={`text-[9px] font-black uppercase ${step.done ? 'text-orange-500' : 'text-gray-400'}`}>{step.label}</span>
+                      </div>
+                      {idx < arr.length - 1 && (
+                        <div className={`flex-1 h-0.5 mx-2 -mt-4 ${step.done ? 'bg-orange-200' : 'bg-gray-100'}`}></div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+
+                <div className="space-y-3">
+                    {selectedOrder.deliveryRequests && selectedOrder.deliveryRequests.length > 0 ? (
+                      selectedOrder.deliveryRequests.map((req) => (
                         <div key={req.id} className={`bg-white border border-gray-100 p-4 rounded-2xl flex items-center gap-4 ${isArabic ? 'flex-row-reverse text-right' : ''}`}>
                             <div className="relative">
                               {req.driver?.user?.profileImage ? (
@@ -417,11 +447,6 @@ export default function OrdersView() {
                               {req.status === 'ACCEPTED' && (
                                 <div className="absolute -bottom-1 -right-1 bg-green-500 rounded-full p-0.5 border-2 border-white">
                                   <CheckCircle className="w-3 h-3 text-white" />
-                                </div>
-                              )}
-                              {req.status === 'REJECTED' && (
-                                <div className="absolute -bottom-1 -right-1 bg-red-500 rounded-full p-0.5 border-2 border-white">
-                                  <XCircle className="w-3 h-3 text-white" />
                                 </div>
                               )}
                             </div>
@@ -438,35 +463,39 @@ export default function OrdersView() {
 
                             <div className="flex items-center">
                               {req.status === 'PENDING' && (
-                                <span className="flex items-center gap-1 text-xs font-bold text-amber-500 bg-amber-50 px-3 py-1.5 rounded-lg">
+                                <span className="flex items-center gap-1 text-[10px] font-black text-amber-500 bg-amber-50 px-3 py-1.5 rounded-xl uppercase tracking-wider">
                                   <Clock className="w-3 h-3" />
-                                  {isArabic ? 'في الانتظار' : 'Pending'}
+                                  {isArabic ? 'جاري العرض' : 'Offering'}
                                 </span>
                               )}
                               {req.status === 'ACCEPTED' && (
-                                <span className="flex items-center gap-1 text-xs font-bold text-green-500 bg-green-50 px-3 py-1.5 rounded-lg">
+                                <span className="flex items-center gap-1 text-[10px] font-black text-green-500 bg-green-50 px-3 py-1.5 rounded-xl uppercase tracking-wider">
                                   <CheckCircle className="w-3 h-3" />
-                                  {isArabic ? 'تم القبول' : 'Accepted'}
+                                  {isArabic ? 'وافق' : 'Accepted'}
                                 </span>
                               )}
                               {req.status === 'REJECTED' && (
-                                <span className="flex items-center gap-1 text-xs font-bold text-red-500 bg-red-50 px-3 py-1.5 rounded-lg">
+                                <span className="flex items-center gap-1 text-[10px] font-black text-red-500 bg-red-50 px-3 py-1.5 rounded-xl uppercase tracking-wider">
                                   <XCircle className="w-3 h-3" />
-                                  {isArabic ? 'تم الرفض' : 'Rejected'}
+                                  {isArabic ? 'رفض' : 'Rejected'}
                                 </span>
                               )}
                               {req.status === 'EXPIRED' && (
-                                <span className="flex items-center gap-1 text-xs font-bold text-gray-500 bg-gray-50 px-3 py-1.5 rounded-lg">
+                                <span className="flex items-center gap-1 text-[10px] font-black text-gray-500 bg-gray-50 px-3 py-1.5 rounded-xl uppercase tracking-wider">
                                   <X className="w-3 h-3" />
-                                  {isArabic ? 'انتهت المهلة' : 'Expired'}
+                                  {isArabic ? 'تجاوز الوقت' : 'Expired'}
                                 </span>
                               )}
                             </div>
                         </div>
-                      ))}
-                  </div>
+                      ))
+                    ) : (
+                      <div className="py-8 text-center bg-gray-50 rounded-3xl border border-dashed border-gray-200">
+                        <p className="text-xs font-bold text-gray-400">{isArabic ? 'جاري تصفية السائقين الأقرب...' : 'Filtering closest drivers...'}</p>
+                      </div>
+                    )}
                 </div>
-              )}
+              </div>
 
             </div>
           </div>
