@@ -466,13 +466,27 @@ export default function OrdersView() {
                       </div>
                     </div>
                     <div className="flex-1">
-                      <p className="text-lg font-black text-slate-800 leading-none mb-1">{selectedOrder.driver.user?.name}</p>
+                      <div className={`flex items-center justify-between mb-1 ${isArabic ? 'flex-row-reverse' : ''}`}>
+                         <p className="text-lg font-black text-slate-800 leading-none">{selectedOrder.driver.user?.name}</p>
+                         <span className="text-[10px] font-black text-green-600 bg-white px-2 py-0.5 rounded-full border border-green-100 uppercase tracking-widest">
+                            {selectedOrder.status === 'PICKED_UP' || selectedOrder.status === 'ON_THE_WAY' 
+                               ? (isArabic ? 'في الطريق' : 'ON THE WAY') 
+                               : (isArabic ? 'معين' : 'ASSIGNED')}
+                         </span>
+                      </div>
                       <div className={`flex items-center gap-3 ${isArabic ? 'flex-row-reverse' : ''}`}>
                         <a href={`tel:${selectedOrder.driver.user?.phone}`} className="text-sm font-bold text-green-600 hover:underline">
                           {selectedOrder.driver.user?.phone}
                         </a>
                         <span className="w-1 h-1 bg-green-200 rounded-full" />
-                        <span className="text-xs font-black text-green-500 uppercase">{isArabic ? 'في الطريق' : 'En Route'}</span>
+                        {selectedOrder.driverToCustomerDistance != null && (
+                           <div className={`flex items-center gap-1.5 ${isArabic ? 'flex-row-reverse' : ''}`}>
+                              <Bike className="w-3 h-3 text-green-500" />
+                              <span className="text-xs font-black text-green-700">
+                                 {selectedOrder.driverToCustomerDistance.toFixed(1)} km {isArabic ? 'عن الزبون' : 'to customer'}
+                              </span>
+                           </div>
+                        )}
                       </div>
                     </div>
                   </div>
