@@ -16,6 +16,9 @@ export default function OrdersView() {
   const [loading, setLoading] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [orderToPrint, setOrderToPrint] = useState(null);
+  const [eligibleDrivers, setEligibleDrivers] = useState([]);
+  const [fetchingDrivers, setFetchingDrivers] = useState(false);
+  const [requestingDriverId, setRequestingDriverId] = useState(null);
   const isArabic = language === 'ar';
 
   const fetchOrders = async () => {
@@ -50,6 +53,42 @@ export default function OrdersView() {
       };
     }
   }, [socket, selectedRestaurant]);
+
+  const fetchEligibleDrivers = async (orderId) => {
+    setFetchingDrivers(true);
+    try {
+      const drivers = await orderService.getEligibleDrivers(orderId);
+      setEligibleDrivers(drivers);
+    } catch (err) {
+      console.error('Failed to fetch eligible drivers:', err);
+    } finally {
+      setFetchingDrivers(false);
+    }
+  };
+
+  useEffect(() => {
+    if (selectedOrder && !selectedOrder.driver) {
+      fetchEligibleDrivers(selectedOrder.id);
+    } else {
+      setEligibleDrivers([]);
+    }
+  }, [selectedOrder]);
+
+  const handleManualRequest = async (driverId) => {
+    setRequestingDriverId(driverId);
+    try {
+      await orderService.requestSpecificDriver(selectedOrder.id, driverId);
+      // Refresh to see the request
+      fetchOrders();
+      // Also refresh the specific order if it's open
+      const data = await orderService.getOrderById(selectedOrder.id);
+      setSelectedOrder(data);
+    } catch (err) {
+      console.error('Failed to request driver:', err);
+    } finally {
+      setRequestingDriverId(null);
+    }
+  };
 
   const handlePrint = (order) => {
     setOrderToPrint(order);
@@ -345,14 +384,21 @@ export default function OrdersView() {
                  </div>
               </div>
 
-              {/* Assigned Driver (If accepted) */}
-              {selectedOrder.driver && (
-                <div className="space-y-4 animate-fade-in">
+              {/* Driver Dispatch Section */}
+              <div className="space-y-4 pt-4 border-t border-gray-100">
+                <div className={`flex items-center justify-between ${isArabic ? 'flex-row-reverse' : ''}`}>
                   <h4 className={`text-xs font-black text-gray-400 uppercase tracking-[0.2em] flex items-center gap-2 ${isArabic ? 'flex-row-reverse' : ''}`}>
-                    <Bike className="w-4 h-4 text-green-500" />
-                    {isArabic ? 'السائق المعتمد' : 'Assigned Driver'}
+                      <Bike className="w-4 h-4" />
+                      {selectedOrder.driver ? (isArabic ? 'السائق المعين' : 'السائقين المتاحين (الأقرب)') : (isArabic ? 'السائقين المتاحين (الأقرب)' : 'Available Drivers (Nearby)')}
                   </h4>
-                  <div className={`bg-green-50 border-2 border-green-100 p-5 rounded-[2.5rem] flex items-center gap-5 ${isArabic ? 'flex-row-reverse text-right' : ''}`}>
+                  {fetchingDrivers && !selectedOrder.driver && (
+                     <div className="w-4 h-4 border-2 border-orange-500 border-t-transparent rounded-full animate-spin"></div>
+                  )}
+                </div>
+
+                {selectedOrder.driver ? (
+                  /* Assigned Driver Card */
+                  <div className={`bg-green-50 border-2 border-green-100 p-5 rounded-[2.5rem] flex items-center gap-5 animate-fade-in ${isArabic ? 'flex-row-reverse text-right' : ''}`}>
                     <div className="relative">
                       {selectedOrder.driver.user?.profileImage ? (
                         <img src={selectedOrder.driver.user.profileImage} alt="" className="w-16 h-16 rounded-3xl object-cover border-4 border-white shadow-sm" />
@@ -376,146 +422,83 @@ export default function OrdersView() {
                       </div>
                     </div>
                   </div>
-                </div>
-              )}
-
-              {/* Delivery Info */}
-              <div className="space-y-4">
-                 <h4 className={`text-xs font-black text-gray-400 uppercase tracking-[0.2em] flex items-center gap-2 ${isArabic ? 'flex-row-reverse' : ''}`}>
-                    <MapPin className="w-4 h-4" />
-                    {translate(language, 'orders.deliveryAddress')}
-                 </h4>
-                 <div className={`bg-gray-50 border border-gray-100 p-5 rounded-3xl flex items-center gap-4 ${isArabic ? 'flex-row-reverse text-right' : ''}`}>
-                    <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center shadow-sm text-orange-500">
-                       <MapPin className="w-6 h-6" />
-                    </div>
-                    <div className="flex-1" style={{ textAlign: 'start' }}>
-                       <p className="font-bold text-slate-800" dir="auto" style={{ unicodeBidi: 'plaintext' }}>{selectedOrder.deliveryAddress}</p>
-                       <p className="text-xs text-gray-400 font-medium">Cairo, Egypt • {new Date(selectedOrder.createdAt).toLocaleString()}</p>
-                    </div>
-                 </div>
-              </div>
-
-              {/* Delivery Drivers (Available / Requested) */}
-              <div className="space-y-4 pt-4 border-t border-gray-100">
-                <div className={`flex items-center justify-between ${isArabic ? 'flex-row-reverse' : ''}`}>
-                  <h4 className={`text-xs font-black text-gray-400 uppercase tracking-[0.2em] flex items-center gap-2 ${isArabic ? 'flex-row-reverse' : ''}`}>
-                      <Bike className="w-4 h-4" />
-                      {isArabic ? 'حالة التوزيع (Dispatch Flow)' : 'Dispatch Flow Status'}
-                  </h4>
-                  {!selectedOrder.driver && (
-                    <div className="flex items-center gap-3">
-                      <button 
-                        onClick={async () => {
-                          try {
-                            await orderService.dispatchOrder(selectedOrder.id);
-                            // Refresh orders to see requests
-                            const updated = await orderService.getVendorOrders(restaurant.id);
-                            setOrders(updated.data);
-                            const updatedDetail = updated.data.find(o => o.id === selectedOrder.id);
-                            if (updatedDetail) setSelectedOrder(updatedDetail);
-                          } catch (err) {
-                            console.error('Failed to dispatch:', err);
-                          }
-                        }}
-                        className="bg-orange-500 hover:bg-orange-600 text-white text-[10px] font-black px-4 py-2 rounded-xl transition-all shadow-lg shadow-orange-200 active:scale-95 flex items-center gap-2"
-                      >
-                        <Bike className="w-3.5 h-3.5" />
-                        {isArabic ? 'بدء البحث عن سائق' : 'START DISPATCH'}
-                      </button>
-                      <div className="flex items-center gap-2">
-                        <div className="w-2 h-2 bg-orange-500 rounded-full animate-pulse"></div>
-                        <span className="text-[10px] font-black text-orange-500 uppercase">{isArabic ? 'جاري البحث...' : 'Searching...'}</span>
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* Dispatch Progress Steps */}
-                <div className={`flex items-center justify-between px-2 mb-6 ${isArabic ? 'flex-row-reverse' : ''}`}>
-                  {[
-                    { id: 'search', label: isArabic ? 'البحث' : 'Search', done: true },
-                    { id: 'offer', label: isArabic ? 'العرض' : 'Offering', done: selectedOrder.deliveryRequests?.length > 0 },
-                    { id: 'assign', label: isArabic ? 'القبول' : 'Assigned', done: !!selectedOrder.driver }
-                  ].map((step, idx, arr) => (
-                    <div key={step.id} className="flex items-center flex-1 last:flex-none">
-                      <div className="flex flex-col items-center gap-2">
-                        <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold ${step.done ? 'bg-orange-500 text-white' : 'bg-gray-100 text-gray-400'}`}>
-                          {step.done ? '✓' : idx + 1}
-                        </div>
-                        <span className={`text-[9px] font-black uppercase ${step.done ? 'text-orange-500' : 'text-gray-400'}`}>{step.label}</span>
-                      </div>
-                      {idx < arr.length - 1 && (
-                        <div className={`flex-1 h-0.5 mx-2 -mt-4 ${step.done ? 'bg-orange-200' : 'bg-gray-100'}`}></div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-
-                <div className="space-y-3">
-                    {selectedOrder.deliveryRequests && selectedOrder.deliveryRequests.length > 0 ? (
-                      selectedOrder.deliveryRequests.map((req) => (
-                        <div key={req.id} className={`bg-white border border-gray-100 p-4 rounded-2xl flex items-center gap-4 ${isArabic ? 'flex-row-reverse text-right' : ''}`}>
-                            <div className="relative">
-                              {req.driver?.user?.profileImage ? (
-                                  <img src={req.driver.user.profileImage} alt={req.driver.user.name} className="w-12 h-12 rounded-xl object-cover" />
-                              ) : (
-                                  <div className="w-12 h-12 bg-slate-100 rounded-xl flex items-center justify-center text-slate-400">
-                                    <User className="w-6 h-6" />
-                                  </div>
-                              )}
-                              {req.status === 'ACCEPTED' && (
-                                <div className="absolute -bottom-1 -right-1 bg-green-500 rounded-full p-0.5 border-2 border-white">
-                                  <CheckCircle className="w-3 h-3 text-white" />
-                                </div>
-                              )}
-                            </div>
-                            
-                            <div className="flex-1" style={{ textAlign: 'start' }}>
-                              <p className="font-bold text-slate-800 text-sm">{req.driver?.user?.name || 'Unknown Driver'}</p>
-                              <div className={`flex items-center gap-2 mt-1 ${isArabic ? 'flex-row-reverse' : ''}`}>
-                                  <span className="text-xs font-semibold text-orange-500 bg-orange-50 px-2 py-0.5 rounded-md">
-                                    {req.estimatedDistance != null ? `${req.estimatedDistance.toFixed(2)} km` : 'N/A'}
-                                  </span>
-                                  <span className="text-xs text-slate-400">{req.driver?.user?.phone || ''}</span>
+                ) : (
+                  /* Manual Selection List */
+                  <div className="space-y-2 max-h-[400px] overflow-y-auto pr-1 custom-scrollbar">
+                    {eligibleDrivers.length > 0 ? (
+                      eligibleDrivers.map((driver) => {
+                        const request = selectedOrder.deliveryRequests?.find(r => r.driverId === driver.id);
+                        const isRequested = request?.status === 'PENDING';
+                        const isRejected = request?.status === 'REJECTED' || request?.status === 'EXPIRED';
+                        
+                        return (
+                          <div key={driver.id} className={`bg-white border border-gray-100 p-4 rounded-3xl flex items-center gap-4 transition-all hover:shadow-md hover:border-orange-100 ${isArabic ? 'flex-row-reverse text-right' : ''}`}>
+                              <div className="relative">
+                                {driver.user?.profileImage ? (
+                                    <img src={driver.user.profileImage} alt={driver.user.name} className="w-12 h-12 rounded-2xl object-cover" />
+                                ) : (
+                                    <div className="w-12 h-12 bg-slate-50 rounded-2xl flex items-center justify-center text-slate-400">
+                                      <User className="w-6 h-6" />
+                                    </div>
+                                )}
+                                <div className={`absolute -bottom-1 -right-1 w-3.5 h-3.5 rounded-full border-2 border-white ${driver.isBusy ? 'bg-amber-500' : 'bg-green-500'}`}></div>
                               </div>
-                            </div>
+                              
+                              <div className="flex-1 min-w-0" style={{ textAlign: isArabic ? 'right' : 'left' }}>
+                                 <p className="text-sm font-black text-slate-800 truncate">{driver.user?.name || 'Unknown Driver'}</p>
+                                 <div className={`flex items-center gap-2 mt-1 ${isArabic ? 'flex-row-reverse' : ''}`}>
+                                    <span className="text-[10px] font-black text-orange-600 bg-orange-50 px-2 py-0.5 rounded-lg border border-orange-100">
+                                      {driver.distance < 1 ? `${(driver.distance * 1000).toFixed(0)}m` : `${driver.distance.toFixed(1)}km`}
+                                    </span>
+                                    <span className="text-[10px] font-bold text-gray-400">
+                                      ≈ {driver.estimatedTimeMin} {isArabic ? 'دقيقة' : 'min'}
+                                    </span>
+                                 </div>
+                              </div>
 
-                            <div className="flex items-center">
-                              {req.status === 'PENDING' && (
-                                <span className="flex items-center gap-1 text-[10px] font-black text-amber-500 bg-amber-50 px-3 py-1.5 rounded-xl uppercase tracking-wider">
-                                  <Clock className="w-3 h-3" />
-                                  {isArabic ? 'جاري العرض' : 'Offering'}
-                                </span>
-                              )}
-                              {req.status === 'ACCEPTED' && (
-                                <span className="flex items-center gap-1 text-[10px] font-black text-green-500 bg-green-50 px-3 py-1.5 rounded-xl uppercase tracking-wider">
-                                  <CheckCircle className="w-3 h-3" />
-                                  {isArabic ? 'وافق' : 'Accepted'}
-                                </span>
-                              )}
-                              {req.status === 'REJECTED' && (
-                                <span className="flex items-center gap-1 text-[10px] font-black text-red-500 bg-red-50 px-3 py-1.5 rounded-xl uppercase tracking-wider">
-                                  <XCircle className="w-3 h-3" />
-                                  {isArabic ? 'رفض' : 'Rejected'}
-                                </span>
-                              )}
-                              {req.status === 'EXPIRED' && (
-                                <span className="flex items-center gap-1 text-[10px] font-black text-gray-500 bg-gray-50 px-3 py-1.5 rounded-xl uppercase tracking-wider">
-                                  <X className="w-3 h-3" />
-                                  {isArabic ? 'تجاوز الوقت' : 'Expired'}
-                                </span>
-                              )}
-                            </div>
-                        </div>
-                      ))
+                              <button
+                                disabled={isRequested || requestingDriverId === driver.id}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleManualRequest(driver.id);
+                                }}
+                                className={`px-5 py-2.5 rounded-2xl text-[10px] font-black uppercase transition-all shadow-sm active:scale-95 ${
+                                  isRequested 
+                                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                                    : isRejected
+                                    ? 'bg-red-50 text-red-500 border border-red-100 hover:bg-orange-500 hover:text-white'
+                                    : 'bg-orange-500 text-white hover:bg-orange-600'
+                                }`}
+                              >
+                                {requestingDriverId === driver.id ? (
+                                  <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin mx-auto"></div>
+                                ) : isRequested ? (
+                                  isArabic ? 'جاري الطلب' : 'REQUESTED'
+                                ) : isRejected ? (
+                                  isArabic ? 'إعادة طلب' : 'RETRY'
+                                ) : (
+                                  isArabic ? 'طلب الآن' : 'REQUEST'
+                                )}
+                              </button>
+                          </div>
+                        );
+                      })
                     ) : (
-                      <div className="py-8 text-center bg-gray-50 rounded-3xl border border-dashed border-gray-200">
-                        <p className="text-xs font-bold text-gray-400">{isArabic ? 'جاري تصفية السائقين الأقرب...' : 'Filtering closest drivers...'}</p>
+                      <div className="py-12 text-center bg-gray-50 rounded-[2.5rem] border-2 border-dashed border-gray-200">
+                         <p className="text-xs font-black text-gray-400 mb-2">{isArabic ? 'لا يوجد سائقين متاحين حالياً' : 'No available drivers found'}</p>
+                         <button 
+                           onClick={() => fetchEligibleDrivers(selectedOrder.id)}
+                           className="text-[10px] font-black text-orange-500 uppercase hover:underline flex items-center gap-1 mx-auto"
+                         >
+                           <Clock className="w-3 h-3" />
+                           {isArabic ? 'تحديث القائمة' : 'Refresh List'}
+                         </button>
                       </div>
                     )}
-                </div>
+                  </div>
+                )}
               </div>
+
 
             </div>
           </div>

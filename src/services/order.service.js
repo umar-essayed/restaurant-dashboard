@@ -22,6 +22,16 @@ const orderService = {
     const response = await api.post(`/vendor/orders/${id}/dispatch`);
     return response.data;
   },
+
+  getEligibleDrivers: async (id) => {
+    const response = await api.get(`/vendor/orders/${id}/eligible-drivers`);
+    return response.data;
+  },
+
+  requestSpecificDriver: async (orderId, driverId) => {
+    const response = await api.post(`/vendor/orders/${orderId}/request-driver`, { driverId });
+    return response.data;
+  },
 };
 
 export default orderService;
