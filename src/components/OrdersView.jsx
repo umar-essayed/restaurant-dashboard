@@ -404,9 +404,29 @@ export default function OrdersView() {
                       {isArabic ? 'حالة التوزيع (Dispatch Flow)' : 'Dispatch Flow Status'}
                   </h4>
                   {!selectedOrder.driver && (
-                    <div className="flex items-center gap-2">
-                      <div className="w-2 h-2 bg-orange-500 rounded-full animate-pulse"></div>
-                      <span className="text-[10px] font-black text-orange-500 uppercase">{isArabic ? 'جاري البحث...' : 'Searching...'}</span>
+                    <div className="flex items-center gap-3">
+                      <button 
+                        onClick={async () => {
+                          try {
+                            await orderService.dispatchOrder(selectedOrder.id);
+                            // Refresh orders to see requests
+                            const updated = await orderService.getVendorOrders(restaurant.id);
+                            setOrders(updated.data);
+                            const updatedDetail = updated.data.find(o => o.id === selectedOrder.id);
+                            if (updatedDetail) setSelectedOrder(updatedDetail);
+                          } catch (err) {
+                            console.error('Failed to dispatch:', err);
+                          }
+                        }}
+                        className="bg-orange-500 hover:bg-orange-600 text-white text-[10px] font-black px-4 py-2 rounded-xl transition-all shadow-lg shadow-orange-200 active:scale-95 flex items-center gap-2"
+                      >
+                        <Bike className="w-3.5 h-3.5" />
+                        {isArabic ? 'بدء البحث عن سائق' : 'START DISPATCH'}
+                      </button>
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 bg-orange-500 rounded-full animate-pulse"></div>
+                        <span className="text-[10px] font-black text-orange-500 uppercase">{isArabic ? 'جاري البحث...' : 'Searching...'}</span>
+                      </div>
                     </div>
                   )}
                 </div>

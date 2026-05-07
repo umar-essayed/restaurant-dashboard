@@ -17,6 +17,11 @@ const orderService = {
     const response = await api.get(`/orders/${id}`);
     return response.data;
   },
+
+  dispatchOrder: async (id) => {
+    const response = await api.post(`/vendor/orders/${id}/dispatch`);
+    return response.data;
+  },
 };
 
 export default orderService;
