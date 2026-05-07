@@ -44,15 +44,24 @@ export default function OrdersView() {
       socket.on('order:new', () => {
         fetchOrders();
       });
-      socket.on('order:status_changed', () => {
+      socket.on('order:status_changed', async (updatedOrder) => {
         fetchOrders();
+        // If the updated order is the one currently selected, refresh its details
+        if (selectedOrder && (updatedOrder.id === selectedOrder.id || updatedOrder.postgresOrderId === selectedOrder.id)) {
+           try {
+             const data = await orderService.getOrderById(selectedOrder.id);
+             setSelectedOrder(data);
+           } catch (err) {
+             console.error('Failed to refresh selected order details:', err);
+           }
+        }
       });
       return () => {
         socket.off('order:new');
         socket.off('order:status_changed');
       };
     }
-  }, [socket, selectedRestaurant]);
+  }, [socket, selectedRestaurant, selectedOrder]);
 
   const fetchEligibleDrivers = async (orderId) => {
     setFetchingDrivers(true);
@@ -379,6 +388,51 @@ export default function OrdersView() {
                              <p className="text-xs font-bold text-slate-300">{translate(language, 'orders.yourShare')}</p>
                           </div>
                           <p className="text-lg font-black text-white">EGP {selectedOrder.subtotal}</p>
+                       </div>
+                    </div>
+                 </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-4 border-t border-gray-100">
+                 {/* Customer & Delivery Info */}
+                 <div className="space-y-4">
+                    <h4 className={`text-xs font-black text-gray-400 uppercase tracking-[0.2em] flex items-center gap-2 ${isArabic ? 'flex-row-reverse' : ''}`}>
+                       <MapPin className="w-4 h-4" />
+                       {isArabic ? 'معلومات التوصيل' : 'Delivery Info'}
+                    </h4>
+                    <div className={`bg-gray-50 border border-gray-100 p-5 rounded-3xl space-y-4 ${isArabic ? 'text-right' : ''}`}>
+                       <div className={`flex items-center gap-4 ${isArabic ? 'flex-row-reverse' : ''}`}>
+                          <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center shadow-sm text-orange-500">
+                             <MapPin className="w-6 h-6" />
+                          </div>
+                          <div className="flex-1">
+                             <p className="font-bold text-slate-800 leading-tight" dir="auto">{selectedOrder.deliveryAddress}</p>
+                             <div className={`flex items-center gap-3 mt-1 ${isArabic ? 'flex-row-reverse' : ''}`}>
+                                <span className="text-[10px] font-black text-orange-600 bg-orange-50 px-2 py-0.5 rounded-lg border border-orange-100">
+                                   {selectedOrder.customerDistance != null ? `${selectedOrder.customerDistance.toFixed(2)} km` : 'N/A'}
+                                </span>
+                                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">
+                                   {isArabic ? 'المسافة للزبون' : 'Distance to Customer'}
+                                </span>
+                             </div>
+                          </div>
+                       </div>
+                    </div>
+                 </div>
+
+                 {/* Customer Contact */}
+                 <div className="space-y-4">
+                    <h4 className={`text-xs font-black text-gray-400 uppercase tracking-[0.2em] flex items-center gap-2 ${isArabic ? 'flex-row-reverse' : ''}`}>
+                       <User className="w-4 h-4" />
+                       {isArabic ? 'معلومات الزبون' : 'Customer Info'}
+                    </h4>
+                    <div className={`bg-gray-50 border border-gray-100 p-5 rounded-3xl flex items-center gap-4 ${isArabic ? 'flex-row-reverse text-right' : ''}`}>
+                       <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center shadow-sm text-slate-400">
+                          <User className="w-6 h-6" />
+                       </div>
+                       <div className="flex-1">
+                          <p className="font-bold text-slate-800">{selectedOrder.customer?.name || 'Customer'}</p>
+                          <a href={`tel:${selectedOrder.customer?.phone}`} className="text-xs font-bold text-orange-500 hover:underline">{selectedOrder.customer?.phone}</a>
                        </div>
                     </div>
                  </div>
