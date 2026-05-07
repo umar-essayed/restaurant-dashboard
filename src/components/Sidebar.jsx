@@ -27,6 +27,7 @@ export default function Sidebar({ isOpen, onClose, activeItem, onNavigate }) {
   const navItems = [
     { id: 'Dashboard', label: t.sidebar.dashboard, icon: LayoutDashboard },
     { id: 'Orders', label: t.sidebar.orders, icon: ClipboardList },
+    { id: 'Drivers', label: language === 'ar' ? 'السائقين' : 'Drivers', icon: Truck },
     { id: 'Menu', label: t.sidebar.menu, icon: Store },
     { id: 'Analytics', label: t.sidebar.analytics, icon: BarChart3 },
     { id: 'Profile', label: t.sidebar.profile, icon: User },

@@ -345,6 +345,40 @@ export default function OrdersView() {
                  </div>
               </div>
 
+              {/* Assigned Driver (If accepted) */}
+              {selectedOrder.driver && (
+                <div className="space-y-4 animate-fade-in">
+                  <h4 className={`text-xs font-black text-gray-400 uppercase tracking-[0.2em] flex items-center gap-2 ${isArabic ? 'flex-row-reverse' : ''}`}>
+                    <Bike className="w-4 h-4 text-green-500" />
+                    {isArabic ? 'السائق المعتمد' : 'Assigned Driver'}
+                  </h4>
+                  <div className={`bg-green-50 border-2 border-green-100 p-5 rounded-[2.5rem] flex items-center gap-5 ${isArabic ? 'flex-row-reverse text-right' : ''}`}>
+                    <div className="relative">
+                      {selectedOrder.driver.user?.profileImage ? (
+                        <img src={selectedOrder.driver.user.profileImage} alt="" className="w-16 h-16 rounded-3xl object-cover border-4 border-white shadow-sm" />
+                      ) : (
+                        <div className="w-16 h-16 bg-white rounded-3xl flex items-center justify-center text-green-500 shadow-sm border-4 border-white">
+                          <User className="w-8 h-8" />
+                        </div>
+                      )}
+                      <div className="absolute -bottom-1 -right-1 bg-green-500 rounded-full p-1 border-2 border-white shadow-sm">
+                        <CheckCircle className="w-3 h-3 text-white" />
+                      </div>
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-lg font-black text-slate-800 leading-none mb-1">{selectedOrder.driver.user?.name}</p>
+                      <div className={`flex items-center gap-3 ${isArabic ? 'flex-row-reverse' : ''}`}>
+                        <a href={`tel:${selectedOrder.driver.user?.phone}`} className="text-sm font-bold text-green-600 hover:underline">
+                          {selectedOrder.driver.user?.phone}
+                        </a>
+                        <span className="w-1 h-1 bg-green-200 rounded-full" />
+                        <span className="text-xs font-black text-green-500 uppercase">{isArabic ? 'في الطريق' : 'En Route'}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* Delivery Info */}
               <div className="space-y-4">
                  <h4 className={`text-xs font-black text-gray-400 uppercase tracking-[0.2em] flex items-center gap-2 ${isArabic ? 'flex-row-reverse' : ''}`}>

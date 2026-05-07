@@ -12,6 +12,7 @@ import WalletView from './components/WalletView';
 import PromotionsView from './components/PromotionsView';
 import ReviewsView from './components/ReviewsView';
 import LoginView from './components/LoginView';
+import DriversView from './components/DriversView';
 import { RestaurantProvider } from './contexts/RestaurantContext';
 import { SocketProvider } from './contexts/SocketContext';
 import NewOrderAlert from './components/NewOrderAlert';
@@ -70,8 +71,9 @@ export default function App() {
           {currentView === 'wallet' && <WalletView />}
           {currentView === 'promotions' && <PromotionsView />}
           {currentView === 'reviews' && <ReviewsView />}
+          {currentView === 'Drivers' && <DriversView />}
           
-          {!['Dashboard', 'Orders', 'Menu', 'Analytics', 'Profile', 'settings', 'support', 'delivery-fees', 'wallet', 'promotions', 'reviews'].includes(currentView) && (
+          {!['Dashboard', 'Orders', 'Menu', 'Analytics', 'Profile', 'settings', 'support', 'delivery-fees', 'wallet', 'promotions', 'reviews', 'Drivers'].includes(currentView) && (
             <div className="flex items-center justify-center h-full min-h-[50vh]">
               <p className="text-xl text-gray-500 font-medium">
                 <span className="text-orange-500 font-bold">{currentView}</span> view is coming soon!
