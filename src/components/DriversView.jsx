@@ -3,6 +3,7 @@ import { Bike, Phone, Star, MapPin, Search, RefreshCw, ChevronRight, User } from
 import { useLanguage } from '../contexts/LanguageContext';
 import { translate } from '../locales/translations';
 import { useRestaurant } from '../contexts/RestaurantContext';
+import driverService from '../services/driver.service';
 
 export default function DriversView() {
   const { language } = useLanguage();
