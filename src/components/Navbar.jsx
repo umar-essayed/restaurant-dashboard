@@ -3,6 +3,7 @@ import { Bell, Store, Menu, X } from 'lucide-react';
 import { useRestaurantName } from '../contexts/ProfileLogoContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import { translations } from '../locales/translations';
+import NotificationCenter from './NotificationCenter';
 
 export default function Navbar({ sidebarOpen, onToggleSidebar, currentView, onNavigate }) {
   const [hasNotification] = useState(true);
@@ -60,11 +61,9 @@ export default function Navbar({ sidebarOpen, onToggleSidebar, currentView, onNa
           ))}
         </div>
 
-        {/* Right: Bell + Avatar */}
+        {/* Right: Notification Center */}
         <div className="flex items-center gap-3">
-          
-
-          {/* User Avatar */}
+          <NotificationCenter />
         </div>
       </div>
     </nav>

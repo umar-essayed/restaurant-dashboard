@@ -60,12 +60,12 @@ export default function PrintableInvoice({ order, restaurant, isArabic }) {
         </div>
 
         {/* Customer Detail Card */}
-        <div className="mb-6 bg-black text-white p-2 rounded-sm">
-          <div className="border border-white/30 p-2 border-dashed">
+        <div className="mb-6 bg-white text-black p-2 rounded-sm border-2 border-black">
+          <div className="border border-black/30 p-2 border-dashed">
             <p className="text-[9px] font-black opacity-70 mb-1 uppercase tracking-widest">{isArabic ? 'العميل' : 'CUSTOMER'}</p>
             <p className="text-sm font-black mb-1">{order.customer?.name || 'Valued Customer'}</p>
             <p className="text-[10px] font-bold mb-2">{order.customer?.phoneNumber || ''}</p>
-            <div className="h-px bg-white/30 mb-2"></div>
+            <div className="h-px bg-black/30 mb-2"></div>
             <p className="text-[9px] font-black opacity-70 mb-1 uppercase tracking-widest">{isArabic ? 'العنوان' : 'ADDRESS'}</p>
             <p className="text-[10px] font-black leading-tight break-words" dir="auto" style={{ unicodeBidi: 'plaintext' }}>{order.deliveryAddress}</p>
           </div>

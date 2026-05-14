@@ -1,4 +1,6 @@
 import { useState, useEffect } from 'react';
+import { useLanguage } from '../contexts/LanguageContext';
+import { Languages } from 'lucide-react';
 import '../login.css';
 import authService from '../services/auth.service';
 
@@ -7,6 +9,8 @@ export default function LoginView({ onLoginSuccess }) {
   const [password, setPassword] = useState('');
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const { language, setLanguage } = useLanguage();
+  const isArabic = language === 'ar';
   
   const [toast, setToast] = useState({ message: '', type: 'error', visible: false });
   const [shakeTarget, setShakeTarget] = useState(null); // 'email', 'password', or 'button'
@@ -17,6 +21,43 @@ export default function LoginView({ onLoginSuccess }) {
       const style = document.createElement('style');
       style.id = 'login-dynamic-styles';
       style.innerHTML = `
+        .card-header-new {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 12px;
+          margin-bottom: 36px;
+          width: 100%;
+        }
+        .card-header-new.ar {
+          direction: rtl;
+          text-align: right;
+        }
+        .card-header-new.en {
+          direction: ltr;
+          text-align: left;
+        }
+        .logo-icon-new {
+          width: 42px;
+          height: 42px;
+          object-fit: contain;
+        }
+        .title-new {
+          font-family: 'Cairo', sans-serif;
+          font-size: 20px;
+          font-weight: 900;
+          color: #fff;
+          margin: 0;
+          line-height: 1.1;
+          letter-spacing: -0.5px;
+        }
+        .subtitle-new {
+          font-family: 'Cairo', sans-serif;
+          font-size: 12px;
+          color: rgba(255,255,255,0.6);
+          margin: 2px 0 0 0;
+        }
+        
         @keyframes shake {
           0%, 100% { transform: translateX(0); }
           20%      { transform: translateX(-8px); }
@@ -46,7 +87,7 @@ export default function LoginView({ onLoginSuccess }) {
           transform: translateX(-50%) translateY(20px);
           padding: 12px 24px;
           border-radius: 12px;
-          font-family: 'Inter', sans-serif;
+          font-family: 'Cairo', sans-serif;
           font-size: 0.88rem;
           font-weight: 500;
           color: #fff;
@@ -139,18 +180,27 @@ export default function LoginView({ onLoginSuccess }) {
   // We add a wrapper to ensure the login CSS styles only affect this component as much as possible,
   // but since login.css resets some globals, it might bleed. Let's rely on the classes.
   return (
-    <div className="login-wrapper">
+    <div className="login-wrapper" dir={isArabic ? 'rtl' : 'ltr'}>
       <div className="bg-overlay"></div>
 
-      <main className="login-container">
-        <div className="logo-card">
-          <img src="/assets/logo.png" alt="Zpeed Logo" className="logo-img"/>
-        </div>
+      <button 
+        onClick={() => setLanguage(isArabic ? 'en' : 'ar')}
+        className="lang-btn"
+      >
+        <Languages size={18} />
+        <span>{isArabic ? 'English' : 'العربية'}</span>
+      </button>
 
+      <main className="login-container">
         <div className="glass-card">
-          <div className="card-header">
-            <h1>Login as a Vendor</h1>
-            <p className="subtitle">Login to your account</p>
+          <div className={`card-header-new ${isArabic ? 'ar' : 'en'}`}>
+            <div className="logo-section">
+              <img src="/assets/icon.png" alt="Zpeed Logo" className="logo-icon-new" />
+            </div>
+            <div className="text-section">
+              <h1 className="title-new">{isArabic ? 'مرحباً بعودتك' : 'Welcome Back'}</h1>
+              <p className="subtitle-new">{isArabic ? 'سجل دخولك لمتابعة لوحة التحكم' : 'Log in to access your dashboard'}</p>
+            </div>
           </div>
 
           <form id="loginForm" autoComplete="off" noValidate onSubmit={handleSubmit}>
@@ -164,7 +214,7 @@ export default function LoginView({ onLoginSuccess }) {
               <input 
                 type="email" 
                 id="emailInput" 
-                placeholder="Email Address" 
+                placeholder={isArabic ? 'البريد الإلكتروني' : 'Email Address'} 
                 required 
                 value={email}
                 onChange={e => setEmail(e.target.value)}
@@ -182,14 +232,14 @@ export default function LoginView({ onLoginSuccess }) {
               <input 
                 type={isPasswordVisible ? "text" : "password"} 
                 id="passwordInput" 
-                placeholder="Password" 
+                placeholder={isArabic ? 'كلمة المرور' : 'Password'} 
                 required 
                 value={password}
                 onChange={e => setPassword(e.target.value)}
               />
               <button 
                 type="button" 
-                className="toggle-password" 
+                className="toggle-password"
                 aria-label="Toggle password visibility"
                 onClick={() => setIsPasswordVisible(!isPasswordVisible)}
               >
@@ -209,41 +259,22 @@ export default function LoginView({ onLoginSuccess }) {
               </button>
             </div>
 
-            <div className="forgot-row">
-              <a href="#" className="forgot-link">Forgot Password?</a>
+            <div className={`forgot-row ${isArabic ? 'justify-start' : 'justify-end'}`}>
+              <a href="#" className="forgot-link">{isArabic ? 'نسيت كلمة المرور؟' : 'Forgot Password?'}</a>
             </div>
 
             <button 
               type="submit" 
               className={`btn-login ${shakeTarget === 'button' ? 'shake-anim' : ''}`}
               disabled={isLoading}
-              style={{ opacity: isLoading ? 0.8 : 1 }}
+              style={{ opacity: isLoading ? 0.8 : 1, fontFamily: 'Cairo' }}
             >
-              {isLoading ? <span className="spinner"></span> : <span>Log In</span>}
+              {isLoading ? <span className="spinner"></span> : <span>{isArabic ? 'تسجيل الدخول' : 'Log In'}</span>}
             </button>
 
 
           </form>
 
-          <div className="divider">
-            <span>OR</span>
-          </div>
-
-          <div className="social-buttons">
-            <button className="social-btn" aria-label="Login with Google">
-              <svg width="22" height="22" viewBox="0 0 48 48">
-                <path fill="#FFC107" d="M43.611,20.083H42V20H24v8h11.303c-1.649,4.657-6.08,8-11.303,8c-6.627,0-12-5.373-12-12c0-6.627,5.373-12,12-12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C12.955,4,4,12.955,4,24c0,11.045,8.955,20,20,20c11.045,0,20-8.955,20-20C44,22.659,43.862,21.35,43.611,20.083z"/>
-                <path fill="#FF3D00" d="M6.306,14.691l6.571,4.819C14.655,15.108,18.961,12,24,12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C16.318,4,9.656,8.337,6.306,14.691z"/>
-                <path fill="#4CAF50" d="M24,44c5.166,0,9.86-1.977,13.409-5.192l-6.19-5.238C29.211,35.091,26.715,36,24,36c-5.202,0-9.619-3.317-11.283-7.946l-6.522,5.025C9.505,39.556,16.227,44,24,44z"/>
-                <path fill="#1976D2" d="M43.611,20.083H42V20H24v8h11.303c-0.792,2.237-2.231,4.166-4.087,5.571c0.001-0.001,0.002-0.001,0.003-0.002l6.19,5.238C36.971,39.205,44,34,44,24C44,22.659,43.862,21.35,43.611,20.083z"/>
-              </svg>
-            </button>
-            <button className="social-btn" aria-label="Login with Phone">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#f0a030" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/>
-              </svg>
-            </button>
-          </div>
         </div>
       </main>
 

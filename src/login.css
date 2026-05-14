@@ -103,27 +103,7 @@
   }
 }
 
-/* ---------- Logo Card ---------- */
-.logo-card {
-  width: 160px;
-  height: 120px;
-  background: rgba(255, 255, 255, 0.92);
-  border-radius: var(--radius-lg);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.2);
-  margin-bottom: -36px;
-  z-index: 2;
-  border: 1px solid rgba(255, 255, 255, 0.35);
-  animation: fadeSlideUp 0.7s 0.1s ease-out both;
-}
 
-.logo-img {
-  width: 120px;
-  height: auto;
-  object-fit: contain;
-}
 
 /* ---------- Glass Card ---------- */
 .glass-card {
@@ -134,7 +114,7 @@
   border: 1px solid var(--glass-border);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-card);
-  padding: 56px 28px 32px;
+  padding: 32px 28px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -175,7 +155,9 @@ form {
 
 .input-group input {
   width: 100%;
-  padding: 16px 16px 16px 50px;
+  padding-block: 16px;
+  padding-inline-start: 50px;
+  padding-inline-end: 16px;
   background: var(--input-bg);
   border: 1.5px solid var(--input-border);
   border-radius: var(--radius-sm);
@@ -187,7 +169,17 @@ form {
   transition: border-color var(--transition-fast), background var(--transition-fast), box-shadow var(--transition-fast);
 }
 
-.input-group input::placeholder {
+/* Adjust padding for password field to accommodate eye icon */
+.input-group input[type="password"],
+.input-group input[type="text"]#passwordInput {
+  padding-inline-end: 48px;
+}
+
+.input-icon {
+  position: absolute;
+  inset-inline-start: 16px;
+  top: 50%;
+  transform: translateY(-50%);
   color: var(--text-secondary);
   font-weight: 400;
 }
@@ -222,7 +214,7 @@ form {
 
 .toggle-password {
   position: absolute;
-  right: 14px;
+  inset-inline-end: 14px;
   top: 50%;
   transform: translateY(-50%);
   background: none;

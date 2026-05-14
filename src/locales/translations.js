@@ -10,6 +10,17 @@ export const translations = {
       profile: 'Profile',
       settings: 'Settings',
     },
+    status: {
+      pending: 'Pending',
+      confirmed: 'Confirmed',
+      preparing: 'Preparing',
+      ready: 'Ready',
+      ready_for_pickup: 'Ready',
+      picked_up: 'Picked Up',
+      out_for_delivery: 'Out for Delivery',
+      delivered: 'Delivered',
+      cancelled: 'Cancelled',
+    },
 
     // Sidebar & Bottom Nav
     sidebar: {
@@ -179,6 +190,11 @@ export const translations = {
       confirmed: 'Confirmed',
       preparing: 'Preparing',
       readyForPickup: 'Ready for Pickup',
+      accept: 'Accept',
+      reject: 'Reject',
+      assignDriver: 'Assign Driver',
+      startPreparing: 'Start Preparing',
+      markAsReady: 'Mark as Ready',
     },
 
     // Dashboard
@@ -279,6 +295,17 @@ export const translations = {
       analytics: 'التحليلات',
       profile: 'الملف الشخصي',
       settings: 'الإعدادات',
+    },
+    status: {
+      pending: 'قيد الانتظار',
+      confirmed: 'تم التأكيد',
+      preparing: 'جاري التحضير',
+      ready: 'جاهز',
+      ready_for_pickup: 'جاهز للاستلام',
+      picked_up: 'تم الاستلام',
+      out_for_delivery: 'في الطريق',
+      delivered: 'تم التسليم',
+      cancelled: 'ملغي',
     },
 
     // Sidebar & Bottom Nav
@@ -449,6 +476,11 @@ export const translations = {
       confirmed: 'تم التأكيد',
       preparing: 'جاري التحضير',
       readyForPickup: 'جاهز للاستلام',
+      accept: 'قبول',
+      reject: 'رفض',
+      assignDriver: 'تسجيل سايق',
+      startPreparing: 'بدء التحضير',
+      markAsReady: 'جاهز للالتقاط',
     },
 
     // Dashboard

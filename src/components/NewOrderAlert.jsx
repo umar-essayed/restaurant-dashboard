@@ -3,7 +3,7 @@ import { useSocket } from '../contexts/SocketContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import { Package, X, ArrowRight, BellRing, ShoppingBag, Clock, MapPin } from 'lucide-react';
 
-export default function NewOrderAlert() {
+export default function NewOrderAlert({ onViewOrder }) {
   const { newOrder, clearNewOrder } = useSocket();
   const { language } = useLanguage();
   const isArabic = language === 'ar';
@@ -11,11 +11,22 @@ export default function NewOrderAlert() {
 
   useEffect(() => {
     if (newOrder) {
+      console.log('📢 NewOrderAlert: Showing alert for order:', newOrder.id);
       setVisible(true);
-      // Auto hide after 15 seconds if not clicked
+      
+      // Play notification sound twice
+      const audio = new Audio('/sounds/notification.wav');
+      audio.play().then(() => {
+        setTimeout(() => {
+          audio.currentTime = 0;
+          audio.play().catch(e => console.warn('Sound play 2 failed:', e));
+        }, 1000); // 1 second interval between sounds
+      }).catch(err => console.warn('Could not play notification sound:', err));
+
+      // Auto hide after 30 seconds if not clicked
       const timer = setTimeout(() => {
         handleClose();
-      }, 15000);
+      }, 30000);
       return () => clearTimeout(timer);
     }
   }, [newOrder]);
@@ -23,6 +34,13 @@ export default function NewOrderAlert() {
   const handleClose = () => {
     setVisible(false);
     setTimeout(clearNewOrder, 500); // Wait for exit animation
+  };
+
+  const handleViewOrder = () => {
+    if (onViewOrder) {
+      onViewOrder(newOrder);
+    }
+    handleClose();
   };
 
 
@@ -91,7 +109,7 @@ export default function NewOrderAlert() {
           </div>
 
           <button 
-            onClick={handleClose}
+            onClick={handleViewOrder}
             className={`w-full bg-slate-900 hover:bg-slate-800 text-white py-4 rounded-2xl font-black transition-all flex items-center justify-center gap-3 group shadow-xl shadow-slate-200`}
           >
             {isArabic ? 'عرض الطلب والبدء' : 'View & Process Order'}
@@ -111,7 +129,7 @@ export default function NewOrderAlert() {
           to { width: 0%; }
         }
         .animate-progress {
-          animation: progress 15s linear forwards;
+          animation: progress 30s linear forwards;
         }
       `}} />
     </div>

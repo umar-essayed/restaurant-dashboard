@@ -21,9 +21,12 @@ export const SocketProvider = ({ children }) => {
     const token = localStorage.getItem('token');
     if (!token) return;
 
-    const newSocket = io(import.meta.env.VITE_API_URL || 'https://api.zspeedapp.com/', {
+    const socketUrl = import.meta.env.VITE_API_URL || 'https://api.zspeedapp.com/';
+    console.log('🔌 SocketContext: Connecting to:', socketUrl);
+    
+    const newSocket = io(socketUrl, {
       auth: { token },
-      transports: ['websocket']
+      transports: ['polling', 'websocket']
     });
 
     newSocket.on('connect', () => {
@@ -34,14 +37,13 @@ export const SocketProvider = ({ children }) => {
     });
 
     newSocket.on('order:new', (order) => {
-      console.log('New order received:', order);
-      // Notifications disabled for now as requested
-      /*
+      console.log('🔥🔥 REAL-TIME: New order received via Socket.io:', order);
       setNewOrder(order);
-      if (audioRef.current) {
-        audioRef.current.play().catch(e => console.log('Audio play failed:', e));
-      }
-      */
+      // Sound is handled by NewOrderAlert component now
+    });
+
+    newSocket.on('connect_error', (err) => {
+      console.error('❌ Socket Connection Error:', err);
     });
 
     setSocket(newSocket);
@@ -53,6 +55,7 @@ export const SocketProvider = ({ children }) => {
 
   useEffect(() => {
     if (socket && selectedRestaurant?.id) {
+      console.log(`📡 Emitting vendor:subscribe for restaurant: ${selectedRestaurant.id}`);
       socket.emit('vendor:subscribe', { restaurantId: selectedRestaurant.id });
     }
   }, [selectedRestaurant, socket]);
